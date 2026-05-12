@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POC Grupo Facta — Conferência automática planta × planilha</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --text-muted: #57534e;
+    --accent: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --yellow: #ca8a04;
+    --yellow-bg: #fef3c7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --blue: #2563eb;
+    --blue-bg: #dbeafe;
+    --gray: #64748b;
+    --gray-bg: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    padding: 80px 0 60px;
+  }
+  header .container { display: flex; flex-direction: column; gap: 16px; }
+  .label {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    width: fit-content;
+  }
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  header p { color: rgba(255,255,255,0.75); font-size: 18px; max-width: 760px; }
+  .meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    flex-wrap: wrap;
+  }
+  .meta strong { color: rgba(255,255,255,0.9); font-weight: 600; }
+
+  /* SECTIONS */
+  section { padding: 64px 0; }
+  section.alt { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+  h2 small { color: var(--text-muted); font-size: 16px; font-weight: 400; }
+  h3 { font-size: 18px; margin: 24px 0 8px; font-weight: 600; }
+  p { color: var(--text-muted); margin-bottom: 12px; max-width: 800px; }
+  .lead { font-size: 18px; color: var(--text); max-width: 800px; }
+
+  /* SUMMARY CARDS */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card .num { font-size: 36px; font-weight: 700; line-height: 1; }
+  .card .lbl { color: var(--text-muted); font-size: 14px; margin-top: 8px; }
+  .card.green .num { color: var(--green); }
+  .card.yellow .num { color: var(--yellow); }
+  .card.red .num { color: var(--red); }
+  .card.blue .num { color: var(--blue); }
+
+  /* STEPS */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .step .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .step h3 { margin: 0 0 8px; }
+  .step p { font-size: 14px; margin: 0; }
+
+  /* EXAMPLES */
+  .examples { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+  .example {
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+  .example.good { border-left-color: var(--green); }
+  .example.warn { border-left-color: var(--yellow); }
+  .example.info { border-left-color: var(--blue); }
+  .example h3 { margin-top: 0; display: flex; align-items: center; gap: 8px; }
+  .example .code-tag {
+    font-family: 'SF Mono', Consolas, Menlo, monospace;
+    background: var(--gray-bg);
+    color: var(--text);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .nums-row {
+    display: flex;
+    gap: 24px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  .num-tag { font-size: 13px; color: var(--text-muted); }
+  .num-tag strong { color: var(--text); font-weight: 600; font-size: 16px; margin-right: 4px; }
+
+  /* CALLOUT */
+  .callout {
+    background: var(--blue-bg);
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    color: #1e3a8a;
+    font-size: 15px;
+  }
+  .callout strong { color: #1e40af; }
+
+  /* TABLE */
+  .table-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .table-controls input,
+  .table-controls select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--surface);
+    font-family: inherit;
+  }
+  .table-controls input { flex: 1; min-width: 200px; }
+  .table-controls .counter { color: var(--text-muted); font-size: 14px; }
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead { background: var(--gray-bg); }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; user-select: none; }
+  th:hover { background: #e2e8f0; }
+  th.sorted::after { content: ' ▾'; }
+  th.sorted.asc::after { content: ' ▴'; }
+  td.code {
+    font-family: 'SF Mono', Consolas, Menlo, monospace;
+    font-weight: 600;
+  }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover { background: #fafafa; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.green   { background: var(--green-bg);  color: #15803d; }
+  .badge.yellow  { background: var(--yellow-bg); color: #a16207; }
+  .badge.red     { background: var(--red-bg);    color: #b91c1c; }
+  .badge.blue    { background: var(--blue-bg);   color: #1e40af; }
+  .badge.gray    { background: var(--gray-bg);   color: var(--gray); }
+
+  /* LIMITATIONS */
+  .lim-list { margin-top: 16px; }
+  .lim-list li {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }
+  .lim-list li strong { display: block; margin-bottom: 4px; color: var(--text); }
+  .lim-list li span { color: var(--text-muted); font-size: 14px; }
+
+  /* FOOTER */
+  footer {
+    background: var(--text);
+    color: rgba(255,255,255,0.7);
+    padding: 32px 0;
+    margin-top: 64px;
+    font-size: 14px;
+  }
+  footer p { color: rgba(255,255,255,0.6); }
+  footer a { color: rgba(255,255,255,0.9); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; }
+    section { padding: 40px 0; }
+    .card .num { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <span class="label">Prova de Conceito · Dalton Lab × Grupo Facta</span>
+    <h1>Conferência automática de planta × planilha</h1>
+    <p>Provamos que a conferência manual que a Juliana faz hoje pode ser automatizada por um sistema que lê o PDF da planta, cruza com a planilha de quantitativo e aponta o que merece atenção humana.</p>
+    <div class="meta">
+      <div>Loja avaliada: <strong>SMO (C&amp;A)</strong></div>
+      <div>Itens da planilha: <strong>235</strong></div>
+      <div>Caixas detectadas: <strong>423</strong></div>
+      <div>Custo por loja: <strong>~US$ 0,15</strong></div>
+      <div>Tempo: <strong>~4 min</strong></div>
+    </div>
+  </div>
+</header>
+
+<!-- O PROBLEMA -->
+<section>
+  <div class="container">
+    <h2>O que essa POC se propôs a responder</h2>
+    <p class="lead">
+      Hoje, a analista do Grupo Facta faz a conferência <strong>item por item, manualmente</strong>: abre o PDF da planta da C&amp;A, localiza cada caixa de mobiliário, conta quantas vezes aparece, e compara com a quantidade pedida na planilha enviada pelo cliente. Pra uma loja completa, esse trabalho pode levar horas e está sujeito a erro humano.
+    </p>
+    <p class="lead" style="margin-top: 16px;">
+      A pergunta que respondemos com essa POC: <strong>dá pra automatizar essa conferência usando IA?</strong>
+    </p>
+    <div class="callout">
+      💡 <strong>O objetivo aqui não é vender um resultado &ldquo;perfeito&rdquo;.</strong> É demonstrar que a tese é tecnicamente viável: existe um caminho prático, barato e auditável pra fazer o que a Juliana faz hoje em horas, em poucos minutos.
+    </div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section class="alt">
+  <div class="container">
+    <h2>Como abordamos</h2>
+    <p>Em três passos. Sem entrar em detalhes técnicos.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Lê a planta</h3>
+        <p>O sistema detecta cada caixa colorida do PDF que representa um item de mobiliário e gera uma imagem isolada de cada uma — 423 imagens nesta loja.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Identifica o que tem em cada caixa</h3>
+        <p>Cada imagem passa por OCR e, em seguida, por uma IA multimodal que extrai o código do item, a descrição, a dimensão e o setor.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Cruza com a planilha</h3>
+        <p>Compara código a código com a planilha do cliente e classifica cada item: bate certo, diverge em quantidade, foi pedido mas não desenhado, ou foi desenhado mas não consta.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTADOS -->
+<section>
+  <div class="container">
+    <h2>O que o sistema conseguiu nesta loja</h2>
+    <p>Loja SMO da C&amp;A. 235 itens na planilha (todos do conceito ENERGIA), 423 caixas detectadas na planta. Resultado:</p>
+    <div class="cards">
+      <div class="card blue">
+        <div class="num">92%</div>
+        <div class="lbl">Das <strong>423 caixas</strong> detectadas visualmente na planta, o sistema conseguiu <strong>ler o código</strong> em 388 (92%).<br><small>Os 8% restantes têm texto cortado, rotacionado ou ilegível — vão pra revisão humana.</small></div>
+      </div>
+      <div class="card green">
+        <div class="num" id="card-conv">–</div>
+        <div class="lbl">Itens com quantidade <strong>idêntica</strong> entre planta e planilha<br><small>(o sistema cruzou e confirma — não exige atenção da analista)</small></div>
+      </div>
+      <div class="card yellow">
+        <div class="num" id="card-div">–</div>
+        <div class="lbl">Itens com <strong>divergência de quantidade</strong> entre planta e planilha<br><small>(podem ser erro de pedido, erro de desenho ou comportamento esperado)</small></div>
+      </div>
+      <div class="card red">
+        <div class="num" id="card-spl">–</div>
+        <div class="lbl">Itens da planilha <strong>não detectados</strong> na planta<br><small>(maioria são peças internas de módulos — veja explicação abaixo)</small></div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top: 24px; background: var(--red-bg); border-color: #fca5a5; color: #7f1d1d;">
+      <strong>Sobre os 117 itens "não detectados na planta":</strong> o número parece alto à primeira vista, mas tem explicação direta. A maior parte são <strong>componentes internos de módulos</strong> — peg boards, prateleiras, frontais, suportes — que a C&amp;A pede na planilha mas <strong>nunca desenha individualmente</strong> na planta. A planta mostra a gôndola inteira como uma caixa só, enquanto o pedido lista as 10 prateleiras + 20 peg boards que vão dentro dela. O sistema hoje sinaliza tudo como "só planilha"; com refinamento, esses componentes ficariam marcados como <em>"esperado divergir"</em> e sairiam do relatório.
+    </div>
+
+    <div class="callout" style="margin-top: 12px;">
+      <strong>💡 Como contornar isso — e ir além:</strong> se o Grupo Facta nos fornecer a <strong>Bill of Materials (BOM)</strong> de cada item — a lista de quantos componentes internos cada módulo consome (que a Facta já tem internamente porque fabrica o produto) — podemos avançar de uma simples conferência para algo mais poderoso:
+      <ul style="margin: 12px 0 4px 20px; color: inherit;">
+        <li>Detectamos visualmente <strong>37 unidades de EES_61</strong> na planta</li>
+        <li>Aplicamos a BOM: cada EES_61 consome, por exemplo, <strong>10 prateleiras + 20 peg boards</strong></li>
+        <li>Calculamos a demanda total: <strong>370 prateleiras + 740 peg boards</strong> devem ser produzidos</li>
+        <li>Cruzamos com o que a planilha do cliente pediu — e descobrimos se ele <strong>subestimou ou superestimou</strong> a quantidade de peças internas</li>
+      </ul>
+      Esse é um nível de validação que <strong>ninguém faz hoje manualmente</strong> — a Juliana confere o que está desenhado, mas não recalcula a lista de componentes. Com a BOM, transformamos os 117 falsos positivos em <strong>validação real</strong>.
+    </div>
+  </div>
+</section>
+
+<!-- EXEMPLOS -->
+<section class="alt">
+  <div class="container">
+    <h2>Exemplos concretos do que o sistema entrega</h2>
+    <p>Três casos reais desta loja, escolhidos para ilustrar os tipos de resultado.</p>
+
+    <div class="examples">
+      <div class="example good">
+        <h3>✅ Convergência perfeita <span class="code-tag">EES_61</span></h3>
+        <p><strong>"MESA ALTA JEANS"</strong> — A planilha pede <strong>37 unidades</strong> e o sistema detectou <strong>exatamente 37 caixas</strong> da mesma referência espalhadas pela planta (setores JEANS ELA e JEANS ELE).</p>
+        <div class="nums-row">
+          <span class="num-tag"><strong>37</strong> planilha</span>
+          <span class="num-tag"><strong>37</strong> planta</span>
+          <span class="num-tag">Δ = 0</span>
+        </div>
+        <p style="margin-top: 8px;"><em>Implicação:</em> o pedido está fechado. A analista não precisa abrir esse item — o sistema confirma que está tudo certo.</p>
+      </div>
+
+      <div class="example warn">
+        <h3>⚠️ Divergência candidata real <span class="code-tag">EES_16</span></h3>
+        <p><strong>"MESA JEANS BAIXA CONCRETO"</strong> — A planilha pede <strong>36 unidades</strong> mas o sistema detectou apenas <strong>3 caixas</strong> na planta. Essa é a melhor candidata a "erro real entre os dois documentos" que o sistema apontou.</p>
+        <div class="nums-row">
+          <span class="num-tag"><strong>36</strong> planilha</span>
+          <span class="num-tag"><strong>3</strong> planta</span>
+          <span class="num-tag">Δ = –33</span>
+        </div>
+        <p style="margin-top: 8px;"><em>Implicação:</em> esse é exatamente o tipo de divergência que a Juliana detecta manualmente hoje. Pode ser que a planta foi atualizada e a planilha não, que houve erro de pedido, ou que o sistema perdeu cobertura nesse setor. Sem o sistema, a Juliana teria que abrir manualmente — com o sistema, ela vai direto pra esse caso.</p>
+      </div>
+
+      <div class="example info">
+        <h3>ℹ️ "Sumiu da planta" — mas é esperado <span class="code-tag">EAC_22</span></h3>
+        <p><strong>"PEG BOARD SW VIRADO D6x200"</strong> — A planilha pede <strong>510 unidades</strong>, o sistema detectou <strong>zero</strong>. Mas isso é <strong>esperado</strong>: peg boards são peças internas dos módulos de gôndola, que a C&amp;A nunca desenha individualmente na planta — desenha só a gôndola inteira.</p>
+        <div class="nums-row">
+          <span class="num-tag"><strong>510</strong> planilha</span>
+          <span class="num-tag"><strong>0</strong> planta</span>
+          <span class="num-tag">categoria: estrutural</span>
+        </div>
+        <p style="margin-top: 8px;"><em>Implicação:</em> o sistema hoje sinaliza esses itens como "só planilha", o que é tecnicamente correto mas confunde a leitura. Com refinamento, esses componentes estruturais seriam marcados como <em>"esperado divergir"</em>, eliminando ruído do relatório.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIMITAÇÕES -->
+<section>
+  <div class="container">
+    <h2>Limitações honestas <small>— e o que isso significa pra produto</small></h2>
+    <p>O que essa POC ainda <strong>não</strong> resolve, e que precisa ser tratado se virar produto:</p>
+
+    <ul class="lim-list">
+      <li>
+        <strong>Cobertura imperfeita (92%)</strong>
+        <span>~35 caixas ficaram sem código resolvido (texto cortado, rotacionado ou ilegível mesmo para humanos). Numa próxima evolução, vão para uma fila de revisão humana com o recorte da imagem anexo — ainda assim, é um trabalho infinitamente menor do que conferir os 235 itens manualmente.</span>
+      </li>
+      <li>
+        <strong>Sistema não distingue divergência real de "estrutural esperado"</strong>
+        <span>Como no exemplo do peg board acima. Hoje, o sistema lista os 117 itens "só na planilha", mas a maioria são componentes que a C&amp;A nunca desenha. Numa evolução, isso ficaria calibrado por cliente — peças estruturais marcadas e fora do ruído visual.</span>
+      </li>
+      <li>
+        <strong>Validamos só uma planta</strong>
+        <span>Os números acima são da loja SMO. Antes de virar produto comercial, precisamos rodar em 2-3 plantas adicionais (idealmente de lojas C&amp;A diferentes) para confirmar que o pipeline generaliza.</span>
+      </li>
+      <li>
+        <strong>Depende do formato da planta</strong>
+        <span>O sistema assume que a planta tem caixas coloridas em PDF vetorial — formato atual da C&amp;A. Se algum cliente futuro entregar plantas escaneadas ou em preto-e-branco, a primeira camada precisa ser adaptada.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- TABELA -->
+<section class="alt">
+  <div class="container">
+    <h2>Relatório completo <small>— todos os 157 itens</small></h2>
+    <p>Filtre, busque, ordene. Esses são os mesmos dados que sairiam no Excel entregue para a analista.</p>
+
+    <div class="table-controls">
+      <input type="text" id="search" placeholder="Buscar por código ou descrição...">
+      <select id="filter-status">
+        <option value="">Todos os status</option>
+        <option value="convergente">Convergentes</option>
+        <option value="divergente">Divergentes</option>
+        <option value="so_planta">Só na planta</option>
+        <option value="so_planilha">Só na planilha</option>
+        <option value="nao_validado">Não validados</option>
+      </select>
+      <select id="filter-area">
+        <option value="">Todas as áreas</option>
+      </select>
+      <div class="counter" id="counter">– itens</div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-sort="codigo">Código</th>
+            <th data-sort="descricao">Descrição</th>
+            <th data-sort="qty_planilha" class="num">Qty planilha</th>
+            <th data-sort="qty_planta" class="num">Qty planta</th>
+            <th data-sort="delta" class="num">Δ</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="area">Área (planilha)</th>
+            <th>Setores (planta)</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>POC Grupo Facta · Dalton Lab · 2026</p>
+    <p style="margin-top: 4px;">Mais detalhes técnicos no repositório: <a href="https://github.com/daltonlabtech/grupo-facta-validator" target="_blank">github.com/daltonlabtech/grupo-facta-validator</a></p>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+// Dados embarcados (extraídos do relatorio.json final)
+// ============================================================
+window.RELATORIO_DATA = window.RELATORIO_DATA || {"sumario":{"total_itens":157,"convergentes":16,"divergentes":23,"so_planta":0,"so_planilha":117,"nao_validados":1,"qty_total_planta":422,"qty_total_planilha":6967},"setores_poc":[],"linhas":[{"codigo":"EEP_01","descricao_planilha":"MONTANTE LATERAL","descricao_planta":"PISO TETO","qty_planilha":50,"qty_planta":48,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE","ACESSORIOS ELA","BASICOS ELEBA","BBA","BBO","CALCADOS ELA","CALCADOS ELACA","CASUAL","CLOCK","EASY","JEANS ELA","JEANS ELE","KDA","KDO","LABASICOS ELAB","LABASICOS ELABA","LEBASICOS ELE","LINGERIE","PISO TETO","STREET","SUNCOAST SU","TRENDY","WORK"],"observacao":"planta: 48, planilha: 50"},{"codigo":"EEP_02","descricao_planilha":"MONTANTE CENTRAL","descricao_planta":"PISO TETO","qty_planilha":57,"qty_planta":27,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACESSORIOS ELA","BASICOS ELA","BASICOS ELE","BBA","BBO","CALCADOS ELA","CASUAL","EASY","JEANS ELA","JEANS ELE","KDA","KDO","LABASICOS ELABA","LAJEANS ELA","LAJEANS ELAJE","LINGERIE","SUNCOAST SU","TRENDY","WORK"],"observacao":"planta: 27, planilha: 57"},{"codigo":"EEP_03","descricao_planilha":"MONTANTE AUTOPORTANTE 600","descricao_planta":"AUTOPORTANTE","qty_planilha":12,"qty_planta":1,"status":"divergente","area_planilha":"GERAL","setores_planta":[],"observacao":"planta: 1, planilha: 12"},{"codigo":"EEP_04","descricao_planilha":"MONTANTE AUTOPORTANTE 900","descricao_planta":"AUTOPORTANTE 90","qty_planilha":4,"qty_planta":1,"status":"divergente","area_planilha":"GERAL","setores_planta":[],"observacao":"planta: 1, planilha: 4"},{"codigo":"EEP_05","descricao_planilha":"MONTANTE AUTOPORTANTE 1200","descricao_planta":"AUTOPORTANTE 120","qty_planilha":82,"qty_planta":76,"status":"divergente","area_planilha":"GERAL","setores_planta":["AC+BAN+UNAC","BASICOS ELA","BASICOS ELAB","BASICOS ELABA","BASICS ELA","BBA","BBO","CALCADOS ELE","CASUAL","CLOCK","EASY","KDA","KDO","LABASICOS ELABA","LINGERIE","RN","STREET","SUNCOAST","TRENDY","UNAC+BAN+UN","UNAC+BAN+UNAC","UNDER / AC ELE","WORK"],"observacao":"planta: 76, planilha: 82"},{"codigo":"EAC_01","descricao_planilha":"BARRA TRAVAMENTO 600","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_03","descricao_planilha":"BARRA TRAVAMENTO 1200","descricao_planta":null,"qty_planilha":80,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_04","descricao_planilha":"PRATELEIRA BASE 600","descricao_planta":null,"qty_planilha":16,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_05","descricao_planilha":"PRATELEIRA BASE 900","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_06","descricao_planilha":"PRATELEIRA BASE 1200","descricao_planta":null,"qty_planilha":160,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_07","descricao_planilha":"FRONTAL","descricao_planta":null,"qty_planilha":401,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_08","descricao_planilha":"FRONTAL DUPLO","descricao_planta":null,"qty_planilha":374,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_09","descricao_planilha":"BRAÇO ESCADA","descricao_planta":null,"qty_planilha":128,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_10","descricao_planilha":"PRATELEIRA 600","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_11","descricao_planilha":"PRATELEIRA 900","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_12","descricao_planilha":"PRATELEIRA 1200","descricao_planta":null,"qty_planilha":204,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_14","descricao_planilha":"BARRA RETA 900","descricao_planta":null,"qty_planilha":8,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_15","descricao_planilha":"BARRA RETA 1200","descricao_planta":null,"qty_planilha":728,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_16","descricao_planilha":"ENGATE BARRA RETA","descricao_planta":null,"qty_planilha":894,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_17","descricao_planilha":"BASE CIRCULAR 1200","descricao_planta":null,"qty_planilha":7,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_18","descricao_planilha":"BASE CIRCULAR 600","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_19","descricao_planilha":"PEG BOARD SW BOLACHA D6x300","descricao_planta":null,"qty_planilha":372,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_20","descricao_planilha":"PEG BOARD SW BOLACHA D6x200","descricao_planta":null,"qty_planilha":372,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_21","descricao_planilha":"PEG BOARD SW VIRADO D6x300","descricao_planta":null,"qty_planilha":206,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_22","descricao_planilha":"PEG BOARD SW VIRADO D6x200","descricao_planta":null,"qty_planilha":510,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_23","descricao_planilha":"BRACO SW 30x10x300","descricao_planta":null,"qty_planilha":51,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_24","descricao_planilha":"BRACO SW 30x10x200","descricao_planta":null,"qty_planilha":299,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_25","descricao_planilha":"CESTO ACESSORIOS CRE 600","descricao_planta":null,"qty_planilha":18,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_26","descricao_planilha":"PRATELEIRA CALCADOS VIDRO 900x450","descricao_planta":null,"qty_planilha":16,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_27","descricao_planilha":"PRATELEIRA CALCADOS VIDRO 900x350","descricao_planta":null,"qty_planilha":8,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_28","descricao_planilha":"PRATELEIRA CALCADOS VIDRO 1200x450","descricao_planta":null,"qty_planilha":72,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_29","descricao_planilha":"PRATELEIRA CALCADOS VIDRO 1200x350","descricao_planta":null,"qty_planilha":36,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_31","descricao_planilha":"REGUA RETANGULAR 30x20x768","descricao_planta":null,"qty_planilha":45,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_32","descricao_planilha":"PRATELEIRA CHP P25 565x280","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_33","descricao_planilha":"PRATELEIRA CHP P25 547x280","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_34","descricao_planilha":"PRATELEIRA CHP P25 525x280","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_35","descricao_planilha":"PRATELEIRA CHP ILUMINADA P25 1180,50x310","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_37","descricao_planilha":"PRATELEIRA CHP ILUMINADA P25 1180,50x250","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_39","descricao_planilha":"REGUA RETANGULAR 30x20x1168","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_44","descricao_planilha":"PEGBOARD PARA BARRA RETA","descricao_planta":null,"qty_planilha":275,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EAC_45","descricao_planilha":"BRAÇO DUPLO ACE","descricao_planta":null,"qty_planilha":40,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_01","descricao_planilha":"GONDOLA 600x1100","descricao_planta":"MESA CIRCULAR","qty_planilha":23,"qty_planta":10,"status":"divergente","area_planilha":"GERAL","setores_planta":["ARRUMADA","BRASILEIRA","JEANS ELE"],"observacao":"planta: 10, planilha: 23"},{"codigo":"EES_03","descricao_planilha":"GONDOLA 1200x1100","descricao_planta":"GONDOLA 145","qty_planilha":2,"qty_planta":2,"status":"convergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE"],"observacao":""},{"codigo":"EES_04","descricao_planilha":"GONDOLA 1200x1420","descricao_planta":"GONDOLA 145","qty_planilha":2,"qty_planta":2,"status":"convergente","area_planilha":"GERAL","setores_planta":["BRASILEIRA","SUNCOAST"],"observacao":""},{"codigo":"EES_05","descricao_planilha":"T GONDOLA UMA HASTE","descricao_planta":"SINGLE T","qty_planilha":27,"qty_planta":2,"status":"divergente","area_planilha":"GERAL","setores_planta":["BRASILEIRA"],"observacao":"planta: 2, planilha: 27"},{"codigo":"EES_06","descricao_planilha":"T GONDOLA DUPLA","descricao_planta":"DOUBLE T","qty_planilha":15,"qty_planta":5,"status":"divergente","area_planilha":"GERAL","setores_planta":["JEANS-ELA","STREET"],"observacao":"planta: 5, planilha: 15"},{"codigo":"EES_07","descricao_planilha":"GONDOLA CIRCULAR 1200x1100","descricao_planta":"MULTIUSO CIRCULAR","qty_planilha":10,"qty_planta":9,"status":"divergente","area_planilha":"GERAL","setores_planta":["BASICOS ELE","DIV5 KIDS","DIVS KIDS","EASY","RN","T-ZONE ELE"],"observacao":"planta: 9, planilha: 10"},{"codigo":"EES_08","descricao_planilha":"GONDOLA CIRCULAR 1200x1420","descricao_planta":"MULTIUSO CIRCULAR","qty_planilha":5,"qty_planta":2,"status":"divergente","area_planilha":"GERAL","setores_planta":["AC+BAN+UN","CALCADOS ELA"],"observacao":"planta: 2, planilha: 5"},{"codigo":"EES_09","descricao_planilha":"GONDOLA CIRCULAR REGULAGEM 600","descricao_planta":"MULTIUSO 1/4 CIRCLE","qty_planilha":11,"qty_planta":2,"status":"divergente","area_planilha":"GERAL","setores_planta":["BRASILEIRA","EASY"],"observacao":"planta: 2, planilha: 11"},{"codigo":"EES_10","descricao_planilha":"ACESSORIO SUPORTE CALCADOS","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_11","descricao_planilha":"MESA ALTA MADEIRA 1800x900","descricao_planta":"MESA ALTA","qty_planilha":34,"qty_planta":32,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE","ARRUMADA","BASICOS ELA","BBA","BBO","BRASILEIRA","CASUAL","CLOCK","DIV5 KIDS","EASY","KDA","KDO","LINGERIE","PRAIA","RN","STREET","SUNCOAST","T-ZONE ELA","TA","TO","TRENDY","WORK"],"observacao":"planta: 32, planilha: 34"},{"codigo":"EES_12","descricao_planilha":"MESA MEDIA CONCRETO 1750x800","descricao_planta":"MESA MEDIA","qty_planilha":48,"qty_planta":32,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE","ARRUMADA","BASICOS EL","BBA","BBO","BRASILEIRA","CALCADOS ELA","CASUAL","CLOCK","EASY","KDA","KDO","LINGERIE","RN","TO","TRENDY","UNCOAST","WORK"],"observacao":"planta: 32, planilha: 48"},{"codigo":"EES_13","descricao_planilha":"MESA BAIXA CONCRETO 1600x500","descricao_planta":"MESA BAIXA","qty_planilha":10,"qty_planta":4,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE","ADULTA"],"observacao":"planta: 4, planilha: 10"},{"codigo":"EES_15","descricao_planilha":"MESA MONOPRODUTO BASICO PONTA","descricao_planta":"MESA MONOPRODUTO","qty_planilha":36,"qty_planta":26,"status":"divergente","area_planilha":"GERAL","setores_planta":["ACE ELA","ACE ELE","B\nB\n","BASICOS ELA","BASICOS ELE","BASICOS ELLA","DIV5 KIDS","LINGERIE"],"observacao":"planta: 26, planilha: 36"},{"codigo":"EES_16","descricao_planilha":"MESA JEANS BAIXA CONCRETO","descricao_planta":"MESA MEDIA CONCRETO","qty_planilha":36,"qty_planta":3,"status":"divergente","area_planilha":"JEANS","setores_planta":["JEANS ELE"],"observacao":"planta: 3, planilha: 36"},{"codigo":"EES_17","descricao_planilha":"MESA CIRCULAR ALTA MAD+GRAN","descricao_planta":"MESA CIRCULAR ALTA","qty_planilha":11,"qty_planta":4,"status":"divergente","area_planilha":"GERAL","setores_planta":["BASICOS ELE","JEANS ELA"],"observacao":"planta: 4, planilha: 11"},{"codigo":"EES_18","descricao_planilha":"MESA CIRCULAR BAIXA GRAN","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_19","descricao_planilha":"MESA C GRAN","descricao_planta":"MESA C","qty_planilha":10,"qty_planta":2,"status":"divergente","area_planilha":"GERAL","setores_planta":["DIV. KIDS","JEANS ELA"],"observacao":"planta: 2, planilha: 10"},{"codigo":"EES_20","descricao_planilha":"PLINTH ALTO MADEIRA","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_21","descricao_planilha":"PLINTH BAIXO GRAN","descricao_planta":null,"qty_planilha":8,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_22","descricao_planilha":"CUBO MADEIRA","descricao_planta":"CUBO MADEIRA","qty_planilha":42,"qty_planta":21,"status":"divergente","area_planilha":"GERAL","setores_planta":["B\nELA","BASICOS","CASUAL","CLOCK","DIV3 ELE","STREET","TRENDY","WORK"],"observacao":"planta: 21, planilha: 42"},{"codigo":"EES_23","descricao_planilha":"BASE REDONDA MARTELADO 50","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_24","descricao_planilha":"BASE REDONDA MARTELADO 70","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_26","descricao_planilha":"TABLADO HOTPOINT G MADEIRA","descricao_planta":"ISLETA G","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"GERAL","setores_planta":["DIV1 ELA"],"observacao":""},{"codigo":"EES_27","descricao_planilha":"TABLADO HOTPOINT M MADEIRA","descricao_planta":null,"qty_planilha":2,"qty_planta":1,"status":"divergente","area_planilha":"GERAL","setores_planta":["TRENDY"],"observacao":"planta: 1, planilha: 2"},{"codigo":"EES_28","descricao_planilha":"GONDOLA MEIAS 650x400x2000","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_30","descricao_planilha":"GONDOLA ACESSÓRIOS SW 1234x460x1000","descricao_planta":"MULTIUSO COM TELA","qty_planilha":9,"qty_planta":7,"status":"divergente","area_planilha":"ACESSÓRIOS","setores_planta":["AC+BAN+UN","ACE ELA","ACE ELE","ACESSORIOS ELA","PDC ELA"],"observacao":"planta: 7, planilha: 9"},{"codigo":"EES_115","descricao_planilha":"GONDOLA ACESSÓRIOS (ALTURA 1m)","descricao_planta":null,"qty_planilha":8,"qty_planta":0,"status":"so_planilha","area_planilha":"ACESSÓRIOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_31","descricao_planilha":"BIN MADEIRA 801x460x910","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"ACESSÓRIOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_33","descricao_planilha":"GONDOLA CALCADOS 900x460x1200","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_34","descricao_planilha":"GONDOLA CALCADOS 1200x930x1200","descricao_planta":"MULTIUSO COM TELA ALTA","qty_planilha":4,"qty_planta":4,"status":"convergente","area_planilha":"CALÇADOS","setores_planta":["CALCADOS ELA","CALCADOS ELE"],"observacao":""},{"codigo":"EES_35","descricao_planilha":"GONDOLA CALCADOS 1200x930x900","descricao_planta":"MULTIUSO COM TELA BAIXA","qty_planilha":5,"qty_planta":4,"status":"divergente","area_planilha":"CALÇADOS","setores_planta":["CALCADOS ELA","CALCADOS ELE","CALCADOS KIDS"],"observacao":"planta: 4, planilha: 5"},{"codigo":"EES_36","descricao_planilha":"TORRE CALÇADOS","descricao_planta":null,"qty_planilha":42,"qty_planta":0,"status":"so_planilha","area_planilha":"CALÇADOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_37","descricao_planilha":"CABINETE CALCADOS","descricao_planta":"GABINETE","qty_planilha":2,"qty_planta":2,"status":"convergente","area_planilha":"CALÇADOS","setores_planta":["CALCADOS ELA"],"observacao":""},{"codigo":"EES_38","descricao_planilha":"SOFA CALCADOS","descricao_planta":"SOFA PROVA","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"CALÇADOS","setores_planta":["CALCADOS ELA"],"observacao":""},{"codigo":"EES_39","descricao_planilha":"BANCO CALCADOS","descricao_planta":"BANCO PROVA CALCADOS","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"CALÇADOS","setores_planta":["CALCADOS KIDS"],"observacao":""},{"codigo":"EES_40","descricao_planilha":"GONDOLA LINGERIE 800X540X1300","descricao_planta":null,"qty_planilha":7,"qty_planta":0,"status":"so_planilha","area_planilha":"LINGERIE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_42","descricao_planilha":"GONDOLA LINGERIE 1200X540X1200","descricao_planta":"MULTIUSO COM TELA","qty_planilha":2,"qty_planta":2,"status":"convergente","area_planilha":"LINGERIE","setores_planta":["LINGERIE"],"observacao":""},{"codigo":"EES_43","descricao_planilha":"T GONDOLA LINGERIE","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"LINGERIE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_44","descricao_planilha":"MESA ALTA CIRCULAR BELEZA","descricao_planta":"MESA ALTA CIRCULAR","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"BELEZA","setores_planta":["DIV11 BELEZA"],"observacao":""},{"codigo":"EES_45","descricao_planilha":"MESA BAIXA CIRCULAR BELEZA","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_47","descricao_planilha":"CABECEIRA BELEZA BAIXA","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_48","descricao_planilha":"GONDOLA AUTOPORTANTE BRANCA","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_49","descricao_planilha":"GONDOLA BAIXA BELEZA","descricao_planta":"GONDOLA MEDIA","qty_planilha":2,"qty_planta":5,"status":"divergente","area_planilha":"BELEZA","setores_planta":["CABELO","CORPO E BANHO","MAKE E UNHA","PRESTIGIO"],"observacao":"planta: 5, planilha: 2"},{"codigo":"EES_52","descricao_planilha":"BANCADA BELEZA CAMARIM","descricao_planta":"MESA CAMARIM","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"BELEZA","setores_planta":["DIV11 BELEZA"],"observacao":""},{"codigo":"EES_53","descricao_planilha":"ESPELHO BELEZA CAMARIM","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_189","descricao_planilha":"NOVO BALCÃO TRANSFORMER 1,30","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":null,"setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_59","descricao_planilha":"BALCÃO AUTOATENDIMENTO","descricao_planta":null,"qty_planilha":9,"qty_planta":0,"status":"so_planilha","area_planilha":"CAIXA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_61","descricao_planilha":"MESA ALTA JEANS","descricao_planta":"MESA ALTA MADEIRA","qty_planilha":37,"qty_planta":37,"status":"convergente","area_planilha":"JEANS","setores_planta":["JEANS ELA","JEANS ELE","TA","TO"],"observacao":""},{"codigo":"EES_62","descricao_planilha":"BIN MADEIRA 801x655x910","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_63","descricao_planilha":"BALCÃO BELEZA","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_64","descricao_planilha":"CAIXA PNE","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":null,"setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_65","descricao_planilha":"ROLLIE CAIXA","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"CAIXA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_67","descricao_planilha":"MINI ROLLIE APOIO CABIDES","descricao_planta":null,"qty_planilha":9,"qty_planta":0,"status":"so_planilha","area_planilha":"CAIXA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_68","descricao_planilha":"BALCÃO PROVADOR","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"PROVADOR","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_70","descricao_planilha":"EQUIPAMENTO DEVOLUÇÃO DE PEÇAS","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"PROVADOR","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_71","descricao_planilha":"ARMÁRIO ACE ELE","descricao_planta":"ARM\nRIO PRETO","qty_planilha":2,"qty_planta":2,"status":"convergente","area_planilha":"ACE","setores_planta":["ACE ELE"],"observacao":""},{"codigo":"EES_72","descricao_planilha":"ARMÁRIO ACE ELA","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"ACE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_73","descricao_planilha":"ESPELHO RESPIRO LOJA","descricao_planta":null,"qty_planilha":11,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_75","descricao_planilha":"BANCO PROVADOR","descricao_planta":null,"qty_planilha":23,"qty_planta":0,"status":"so_planilha","area_planilha":"PROVADOR","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_76","descricao_planilha":"BANCO PROVADOR PNE","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"PROVADOR","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_78","descricao_planilha":"KIT MESA C","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"BÁSICOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_79","descricao_planilha":"MÓDULO PERÍMETRO MAQUIAGEM","descricao_planta":"ARMÁRIO MAKE","qty_planilha":3,"qty_planta":3,"status":"convergente","area_planilha":"BELEZA","setores_planta":["HAMAKE E UNHA","MAKE E UNHAMA"],"observacao":""},{"codigo":"EES_80","descricao_planilha":"MÓDULO PERÍMETRO PERFUMES","descricao_planta":"ARMÁRIO PERFUMES","qty_planilha":3,"qty_planta":3,"status":"convergente","area_planilha":"BELEZA","setores_planta":["PRESTIGIO"],"observacao":""},{"codigo":"EES_87","descricao_planilha":"MESA C DOWNTOWN BAIXA","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_97","descricao_planilha":"CFTV MÁSCARA","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"CFTV","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_98","descricao_planilha":"EXPOSITOR DE BRINCO BAIXO","descricao_planta":null,"qty_planilha":19,"qty_planta":0,"status":"so_planilha","area_planilha":"ACESSÓRIOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_99","descricao_planilha":"EXPOSITOR DE BRINCO DUPLO","descricao_planta":null,"qty_planilha":19,"qty_planta":0,"status":"so_planilha","area_planilha":"ACESSÓRIOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_100","descricao_planilha":"EXPOSITOR BONÉ","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_101","descricao_planilha":"EXPOSITOR DE CINTO ACRÍLICO","descricao_planta":null,"qty_planilha":25,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_102","descricao_planilha":"EXPOSITOR DE CINTO S","descricao_planta":null,"qty_planilha":25,"qty_planta":0,"status":"so_planilha","area_planilha":"ACESSÓRIOS","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_105","descricao_planilha":"EXPOSITOR DE BOLSA DUPLO","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_106","descricao_planilha":"EXPOSITOR DE BOLSA UMA ASTE","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_107","descricao_planilha":"EXPOSITOR REGULÁVEL BASE GRAN","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_111","descricao_planilha":"MOBILIÁRIO ÓCULOS","descricao_planta":"OCULOS","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"ACESSÓRIOS","setores_planta":["ACESSORIOS ELA"],"observacao":""},{"codigo":"EES_112","descricao_planilha":"PAREDE MÓVEL","descricao_planta":null,"qty_planilha":28,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_113","descricao_planilha":"ARARA SACOLAS","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_114","descricao_planilha":"LIXEIRA","descricao_planta":null,"qty_planilha":25,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_119","descricao_planilha":"PAINEL FEMINO CENTRAL","descricao_planta":null,"qty_planilha":7,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_120","descricao_planilha":"PAINEL MASCULINO ESQUERDO","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_121","descricao_planilha":"PAINEL MASCULINO CENTRAL","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_122","descricao_planilha":"PAINEL FEMININO DIREITO","descricao_planta":null,"qty_planilha":7,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_124","descricao_planilha":"PAINEL FEMININO ESQUERDO","descricao_planta":null,"qty_planilha":7,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_125","descricao_planilha":"PAINEL MASCULINO DIREITO","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"PAREDE","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_128","descricao_planilha":"PRESENTEAVEIS - MEIO PRESENTEAVEIS BELEZA","descricao_planta":"MESA DE PRESENTE","qty_planilha":1,"qty_planta":1,"status":"convergente","area_planilha":"BELEZA","setores_planta":["DIV11 BELEZA"],"observacao":""},{"codigo":"EES_168","descricao_planilha":"GONDOLA FIXA 600x1100","descricao_planta":null,"qty_planilha":21,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_169","descricao_planilha":"GONDOLA CIRCULAR FIXA 600","descricao_planta":null,"qty_planilha":12,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_170","descricao_planilha":"ARARA UMA HASTE FIXA","descricao_planta":null,"qty_planilha":28,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_171","descricao_planilha":"GONDOLA BAIXA BELEZA (BACKLIGHT)","descricao_planta":null,"qty_planilha":3,"qty_planta":0,"status":"so_planilha","area_planilha":"BELEZA","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_172","descricao_planilha":"CAVEIRÃO (RESERVA)","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"EES_173","descricao_planilha":"ROLLIE DUPLO (RESERVA)","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_09","descricao_planilha":"SUPORTE EM FITA 1000X75","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_10","descricao_planilha":"SUPORTE EM FITA 150X75","descricao_planta":null,"qty_planilha":8,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_11","descricao_planilha":"BACKLIGHT BELEZA 1135X351","descricao_planta":null,"qty_planilha":6,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_13","descricao_planilha":"SUPORTE FRONTAL 150X150","descricao_planta":null,"qty_planilha":40,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_14","descricao_planilha":"SUPORTE MADEIRA 300X300","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_15","descricao_planilha":"SUPORTE MADEIRA 300X150","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_16","descricao_planilha":"SUPORTE MADEIRA 150X150","descricao_planta":null,"qty_planilha":30,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_17","descricao_planilha":"SUPORTE DE ARARA 620X170","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_18","descricao_planilha":"SUPORTE ARARA 320X320","descricao_planta":null,"qty_planilha":30,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_19","descricao_planilha":"SUPORTE ARARA 320X170","descricao_planta":null,"qty_planilha":30,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_20","descricao_planilha":"SUPORTE ARARA 170X170","descricao_planta":null,"qty_planilha":30,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_21","descricao_planilha":"SUPORTE ARARA CALCADO 170X170","descricao_planta":null,"qty_planilha":30,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_22","descricao_planilha":"SUPORTE ARARA CALCADO 320X170","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_23","descricao_planilha":"SUPORTE ARARA CALCADO 320X320","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_24","descricao_planilha":"SUPORTE ARARA CALCADO 620X170","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_25","descricao_planilha":"SUPORTE DE MESA 170X170","descricao_planta":null,"qty_planilha":50,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_26","descricao_planilha":"SUPORTE DE MESA 620X170","descricao_planta":null,"qty_planilha":40,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_27","descricao_planilha":"SUPORTE DE MESA 620X320","descricao_planta":null,"qty_planilha":5,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_28","descricao_planilha":"SUPORTE DE MESA 770X220","descricao_planta":null,"qty_planilha":10,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_29","descricao_planilha":"SUPORTE DE MESA 320X320","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_30","descricao_planilha":"SUPORTE DE MESA 320X170","descricao_planta":null,"qty_planilha":20,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_32","descricao_planilha":"DIRETORIO AEREO 700X500","descricao_planta":null,"qty_planilha":4,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_33","descricao_planilha":"DIRETORIO AERIO ATEND. PREFERENCIAL 700X500","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_34","descricao_planilha":"DIRETORIO AEREO PROVADOR 700X250","descricao_planta":null,"qty_planilha":2,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"ECV_36","descricao_planilha":"COMUNICAÇÃO PRESENTEAVEIS","descricao_planta":null,"qty_planilha":1,"qty_planta":0,"status":"so_planilha","area_planilha":"GERAL","setores_planta":[],"observacao":"código não detectado na planta"},{"codigo":"<34 caixas sem código>","descricao_planilha":null,"descricao_planta":null,"qty_planilha":null,"qty_planta":34,"status":"nao_validado","area_planilha":null,"setores_planta":[],"observacao":"Caixas detectadas na planta mas sem código resolvido. Auditar visualmente nos crops associados."}]};
+
+// ============================================================
+// Helpers de UI
+// ============================================================
+const STATUS_META = {
+  convergente:  { label: 'Convergente',   classe: 'green'  },
+  divergente:   { label: 'Divergente',    classe: 'yellow' },
+  so_planta:    { label: 'Só na planta',  classe: 'red'    },
+  so_planilha:  { label: 'Só na planilha',classe: 'red'    },
+  nao_validado: { label: 'Não validado',  classe: 'blue'   },
+};
+
+function statusBadge(st) {
+  const m = STATUS_META[st] || { label: st, classe: 'gray' };
+  return `<span class="badge ${m.classe}">${m.label}</span>`;
+}
+
+function renderCards(s) {
+  document.getElementById('card-conv').textContent = s.convergentes;
+  document.getElementById('card-div').textContent  = s.divergentes;
+  document.getElementById('card-spl').textContent  = s.so_planilha;
+}
+
+let CURRENT_SORT = { col: null, asc: true };
+
+function fmtDescricao(l) {
+  const d = l.descricao_planilha || l.descricao_planta || '—';
+  return d.length > 60 ? d.slice(0, 60) + '…' : d;
+}
+
+function delta(l) {
+  if (l.qty_planta == null || l.qty_planilha == null) return null;
+  return l.qty_planta - l.qty_planilha;
+}
+
+function renderTable(linhas) {
+  const tbody = document.getElementById('tbody');
+  if (!linhas.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:#999;">Nenhum item encontrado com esse filtro.</td></tr>';
+    document.getElementById('counter').textContent = '0 itens';
+    return;
+  }
+  const rows = linhas.map(l => {
+    const d = delta(l);
+    return `
+      <tr>
+        <td class="code">${l.codigo}</td>
+        <td>${fmtDescricao(l)}</td>
+        <td class="num">${l.qty_planilha ?? '–'}</td>
+        <td class="num">${l.qty_planta ?? '–'}</td>
+        <td class="num">${d == null ? '–' : (d > 0 ? '+' + d : d)}</td>
+        <td>${statusBadge(l.status)}</td>
+        <td>${l.area_planilha ?? '–'}</td>
+        <td>${(l.setores_planta || []).join(', ') || '–'}</td>
+      </tr>
+    `;
+  }).join('');
+  tbody.innerHTML = rows;
+  document.getElementById('counter').textContent = `${linhas.length} itens`;
+}
+
+function applyFilters() {
+  const data = window.RELATORIO_DATA;
+  if (!data) return;
+  const q = (document.getElementById('search').value || '').trim().toUpperCase();
+  const st = document.getElementById('filter-status').value;
+  const ar = document.getElementById('filter-area').value;
+  let linhas = data.linhas.filter(l => {
+    if (st && l.status !== st) return false;
+    if (ar && (l.area_planilha || '') !== ar) return false;
+    if (q) {
+      const blob = `${l.codigo} ${l.descricao_planilha || ''} ${l.descricao_planta || ''}`.toUpperCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+  // Sort
+  if (CURRENT_SORT.col) {
+    const col = CURRENT_SORT.col;
+    const dir = CURRENT_SORT.asc ? 1 : -1;
+    linhas.sort((a, b) => {
+      let va, vb;
+      switch(col) {
+        case 'codigo': va = a.codigo; vb = b.codigo; break;
+        case 'descricao': va = fmtDescricao(a); vb = fmtDescricao(b); break;
+        case 'qty_planilha': va = a.qty_planilha ?? -1; vb = b.qty_planilha ?? -1; break;
+        case 'qty_planta':   va = a.qty_planta ?? -1; vb = b.qty_planta ?? -1; break;
+        case 'delta': va = delta(a) ?? 0; vb = delta(b) ?? 0; break;
+        case 'status': va = a.status; vb = b.status; break;
+        case 'area': va = a.area_planilha || ''; vb = b.area_planilha || ''; break;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return  1 * dir;
+      return 0;
+    });
+  }
+  renderTable(linhas);
+}
+
+function setupSort() {
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (CURRENT_SORT.col === col) {
+        CURRENT_SORT.asc = !CURRENT_SORT.asc;
+      } else {
+        CURRENT_SORT = { col, asc: true };
+      }
+      document.querySelectorAll('th').forEach(x => x.classList.remove('sorted', 'asc'));
+      th.classList.add('sorted');
+      if (CURRENT_SORT.asc) th.classList.add('asc');
+      applyFilters();
+    });
+  });
+}
+
+function setupFilters() {
+  document.getElementById('search').addEventListener('input', applyFilters);
+  document.getElementById('filter-status').addEventListener('change', applyFilters);
+  document.getElementById('filter-area').addEventListener('change', applyFilters);
+
+  // Popular áreas únicas
+  const areas = [...new Set(window.RELATORIO_DATA.linhas.map(l => l.area_planilha).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-area');
+  areas.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const data = window.RELATORIO_DATA;
+  if (!data) {
+    document.body.insertAdjacentHTML('afterbegin', '<div style="padding: 24px; background:#fee2e2; color:#b91c1c;">Erro: dados do relatório não carregados.</div>');
+    return;
+  }
+  renderCards(data.sumario);
+  setupSort();
+  setupFilters();
+  applyFilters();
+});
+</script>
+</body>
+</html>
