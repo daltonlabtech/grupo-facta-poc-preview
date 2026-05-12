@@ -2,7 +2,7 @@
 
 Preview público do relatório da prova de conceito Dalton Lab × Grupo Facta para conferência automática de planta × planilha.
 
-**📖 Acesse a página:** [https://daltonlabtech.github.io/grupo-facta-preview/](https://daltonlabtech.github.io/grupo-facta-preview/)
+**📖 Acesse a página:** [https://daltonlabtech.github.io/grupo-facta-poc-preview/](https://daltonlabtech.github.io/grupo-facta-poc-preview/)
 
 ---
 
